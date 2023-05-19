@@ -11,9 +11,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 
 const connection = new signalR.HubConnectionBuilder().withUrl("/k8sHub").build();
 
+const term = new Terminal();
+term.open(document.getElementById('terminal'));
+
+const socket = new WebSocket("ws://localhost:5033/ws?workload=gwc-22z3vm7zd2oo");
+socket.onmessage = (event) => {
+    term.write(event.data);
+}
+
+term.onData(function (input) {
+    socket.send(input);
+})
+
+term.focus();
+
 document.getElementById("streamButton").addEventListener("click", (event) => __awaiter(this, void 0, void 0, function* () {
     try {
-        connection.stream("Counter")
+        connection.stream("Receive")
             .subscribe({
                 next: (item) => {
                     console.log(item);
@@ -43,24 +57,18 @@ const validKeyCode = [13, 32]
 
 document.getElementById("messageInput").addEventListener("keydown", (event) => __awaiter(this, void 0, void 0, function* () {
 
-    // console.log(event.key)
-    // console.log(event.target.value)
-    // if((event.keyCode > 64 && event.keyCode < 91) 
-    //     || (event.keyCode > 47 && event.keyCode < 58) 
-    //     || (event.keyCode > 185 && event.keyCode < 193)
-    //     || (event.keyCode > 218 && event.keyCode < 223)
-    //     || validKeyCode.includes(event.keyCode)){
-
-        // console.log(event.keyCode)
-        // console.log(event.key === "Enter")
-        
-        if(event.key === "Enter"){
-            const subject = new signalR.Subject();
-            yield connection.send("UploadStream", subject);
-            subject.next(event.target.value + '\n');
-            document.getElementById("messageInput").value = '';
-        }
-    // }
+    console.log(event);
+    const subject = new signalR.Subject();
+    yield connection.send("Send", subject);
+    if (event.key.toLowerCase() === 'enter') {
+        subject.next('\n');
+        document.getElementById("messageInput").value = '';
+    } else if(event.key.toLowerCase() === 'Tab'){
+        connection.send("Send", subject);
+    }    
+    else {
+        subject.next(event.key);
+    }
 }));
 
 // We need an async function in order to use await, but we want this code to run immediately,
@@ -68,9 +76,10 @@ document.getElementById("messageInput").addEventListener("keydown", (event) => _
 (() => __awaiter(this, void 0, void 0, function* () {
     try {
         yield connection.start().then(function () {
-            connection.invoke("ConnectKubeAsync", "gwc-zhz9i8alt0c7").catch(function (err) {
+            connection.invoke("ConnectKubeAsync", "gwc-22z3vm7zd2oo").catch(function (err) {
                 return console.error(err.toString());
             });
+           
         }).catch(function (err) {
             return console.error(err.toString());
         })

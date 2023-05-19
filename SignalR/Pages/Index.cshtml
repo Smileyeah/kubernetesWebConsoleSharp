@@ -24,24 +24,27 @@
 @*         </div> *@
 @*     </div> *@
 @* </div> *@
-
+<head>
+    <link rel="stylesheet" href="~/js/xterm/css/xterm.css" />
+</head>
 <style>pre{margin-bottom: 0; min-width: 1px; min-height: 21px;}</style>
 <div class="container">
+    <div id="terminal"></div>
     <div class="row">&nbsp;</div>
     <div class="row">
         <div class="col-6">&nbsp;</div>
         <div class="row p-1">
             <div class="col-1">Message</div>
-            <div class="col-5"><input type="text" class="w-100" id="messageInput" /></div>
+            <div class="col-5"><input type="text" class="w-100" id="messageInput"/></div>
         </div>
         <div class="col-6">
-            <input type="button" id="streamButton" value="Start Streaming" />
-            <input type="button" id="uploadButton" value="Start Upload" />
+            <input type="button" id="streamButton" value="Start Streaming"/>
+            <input type="button" id="uploadButton" value="Start Upload"/>
         </div>
     </div>
     <div class="row">
         <div class="col-12">
-            <hr />
+            <hr/>
         </div>
     </div>
     <div class="row">
@@ -51,5 +54,7 @@
     </div>
 </div>
 <script src="~/js/signalr/dist/browser/signalr.js"></script>
+<script src="~/js/xterm/lib/xterm.js"></script>
+<script src="~/js/xterm/lib/xterm-addon-attach.js"></script>
 <script src="~/js/chat.js"></script>
 @* <script src="~/js/chat_copy.js"></script> *@

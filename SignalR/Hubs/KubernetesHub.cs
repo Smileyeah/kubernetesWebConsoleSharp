@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.Channels;
 using k8s;
 using Microsoft.AspNetCore.SignalR;
+using Newtonsoft.Json;
 
 namespace SignalR.Hubs;
 
@@ -18,7 +19,7 @@ public class KubernetesHub : Hub
     public async Task ConnectKubeAsync(string workload)
     {
         Console.WriteLine(this.Context.ConnectionId);
-        var pods = await _kubernetesClient.ListNamespacedPodAsync("default", null, null, null, $"app={workload}");
+        var pods = await _kubernetesClient.ListNamespacedPodAsync("default", null, null, null, $"qcloud-app={workload}");
         var pod = pods.Items.First();
         
         var webSocket =
@@ -30,8 +31,14 @@ public class KubernetesHub : Hub
         
         this.Context.Items.Add("websocket", webSocket);
         var streamDemuxer = new StreamDemuxer(webSocket);
-        var stdoutStream = streamDemuxer.GetStream(ChannelIndex.StdOut, ChannelIndex.StdIn);
-        var stdinStream = streamDemuxer.GetStream(ChannelIndex.StdOut, ChannelIndex.StdIn);
+        var stdoutStream = streamDemuxer.GetStream(ChannelIndex.StdOut, null);
+        var stdinStream = streamDemuxer.GetStream(null, ChannelIndex.StdIn);
+        var resizeStream = streamDemuxer.GetStream(null, ChannelIndex.Resize);
+        await resizeStream.WriteAsync(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(new
+        {
+            Width = short.MaxValue,
+            Height = short.MaxValue
+        })));
         streamDemuxer.Start();
         
         this.Context.Items.Add("streamDemuxer", streamDemuxer);
@@ -39,7 +46,19 @@ public class KubernetesHub : Hub
         this.Context.Items.Add("stdinStream", stdinStream);
     }
 
-    public async Task UploadStream(ChannelReader<string> stream)
+    public async Task KubeReadTabAsync(CancellationToken cancellationToken)
+    {
+        var internalStream = this.Context.Items["stdinStream"] as MuxedStream;
+        if (internalStream == null)
+        {
+            return;
+        }
+        
+        // do something with the stream item
+        await internalStream.WriteAsync(Encoding.ASCII.GetBytes("\r"));
+    }
+
+    public async Task Send(ChannelReader<string> stream)
     {
         var internalStream = this.Context.Items["stdinStream"] as MuxedStream;
         if (internalStream == null)
@@ -57,7 +76,7 @@ public class KubernetesHub : Hub
         }
     }
     
-    public ChannelReader<string> Counter(
+    public ChannelReader<string> Receive(
         CancellationToken cancellationToken)
     {
         var channel = Channel.CreateUnbounded<string>();
@@ -87,6 +106,21 @@ public class KubernetesHub : Hub
 
             while (await stdout.ReadLineAsync(cancellationToken) is { } line)
             {
+                if (line.Contains("[?2004h"))// 去除不知名字符
+                {
+                    line = line.Substring("[?2004h".Length);
+                }
+
+                if (line.Contains("[K"))// 去除不知名字符
+                {
+                    line = line.Substring("[K".Length);
+                }
+
+                if (line.Contains("[?2004l")) // 去除不知名字符
+                {
+                    continue;
+                }
+                
                 await writer.WriteAsync(line, cancellationToken);
             }
         }

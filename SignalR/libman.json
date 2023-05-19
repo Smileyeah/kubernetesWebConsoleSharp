@@ -9,6 +9,21 @@
         "dist/browser/signalr.js",
         "dist/browser/signalr.js"
       ]
+    },
+    {
+      "library": "xterm@latest",
+      "destination": "wwwroot/js/xterm",
+      "files": [
+        "lib/xterm.js",
+        "css/xterm.css"
+      ]
+    },
+    {
+      "library": "xterm-addon-attach@latest",
+      "destination": "wwwroot/js/xterm",
+      "files": [
+        "lib/xterm-addon-attach.js"
+      ]
     }
   ]
 }
